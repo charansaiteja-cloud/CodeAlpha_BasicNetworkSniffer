@@ -165,3 +165,45 @@ def test_icmpv6_echo_request_is_identified():
 
     assert "IPv6" in row["protocols"]
     assert "ICMPv6" in row["protocols"]
+
+
+def test_capture_reports_interrupt_with_partial_results(monkeypatch, tmp_path):
+    packets = [
+        Ether() / IP(src="192.0.2.1", dst="192.0.2.2") / TCP(),
+        Ether() / IP(src="192.0.2.3", dst="192.0.2.4") / UDP(),
+    ]
+
+    def fake_sniff(**kwargs):
+        for packet in packets:
+            kwargs["prn"](packet)
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(sniffer, "available_interfaces", lambda: ["lo"])
+    monkeypatch.setattr(sniffer, "sniff", fake_sniff)
+
+    output = tmp_path / "interrupted.csv"
+    with pytest.raises(sniffer.CaptureInterrupted) as excinfo:
+        sniffer.capture_to_csv("lo", 0, output)
+
+    assert excinfo.value.captured == 2
+    assert excinfo.value.output_path == output
+
+    with output.open(newline="", encoding="utf-8") as handle:
+        rows = list(csv.DictReader(handle))
+    assert len(rows) == 2
+
+
+def test_capture_passes_chain_cc_to_scapy(monkeypatch, tmp_path):
+    captured_kwargs = {}
+
+    def fake_sniff(**kwargs):
+        captured_kwargs.update(kwargs)
+
+    monkeypatch.setattr(sniffer, "available_interfaces", lambda: ["lo"])
+    monkeypatch.setattr(sniffer, "sniff", fake_sniff)
+
+    sniffer.capture_to_csv("lo", 0, tmp_path / "out.csv")
+
+    assert captured_kwargs["chainCC"] is True
+    assert captured_kwargs["store"] is False
+    assert captured_kwargs["iface"] == "lo"
