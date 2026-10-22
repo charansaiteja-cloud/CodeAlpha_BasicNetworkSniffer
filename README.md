@@ -31,7 +31,6 @@ The design goal is deliberately narrow: **record the metadata, not the payload.*
 are never written to disk or printed. The only payload bytes the tool can emit are an optional, opt-in
 prefix of an ICMP/ICMPv6 message, hard-capped at 16 bytes and disabled by default.
 
-It was built as Task 1 of the CodeAlpha Cyber Security Internship.
 
 **Author:** Bejjam Charan Sai Teja
 
@@ -258,7 +257,7 @@ python sniffer.py -i wlan0 -c 0 -o demo.csv
 and the process exits with status `130`:
 
 ```
-Capture interrupted after 64 packet(s). CSV saved to: demo.csv
+Capture interrupted after 68 packet(s). CSV saved to: demo.csv
 ```
 
 ### Enable the optional ICMP payload prefix
@@ -459,6 +458,5 @@ here as separate files.
 
 ## About
 
-**Bejjam Charan Sai Teja** — CodeAlpha Cyber Security Internship, Task 1.
 
 Repository: <https://github.com/charansaiteja-cloud/CodeAlpha_BasicNetworkSniffer>

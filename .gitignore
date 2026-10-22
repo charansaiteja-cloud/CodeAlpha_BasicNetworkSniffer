@@ -45,3 +45,10 @@ brag-output-*/
 brag-output/
 brag-output-*/
 skills-lock.json
+
+# Local tooling artifacts
+.agents/
+.opencode/
+brag-output/
+brag-output-*/
+skills-lock.json
