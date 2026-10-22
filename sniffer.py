@@ -48,6 +48,18 @@ CSV_COLUMNS = (
 MAX_PREVIEW_BYTES = 16
 
 
+class CaptureInterrupted(Exception):
+    """Raised when the operator stops a capture with Ctrl+C.
+
+    The partial capture is already flushed to disk when this is raised.
+    """
+
+    def __init__(self, captured: int, output_path: Path) -> None:
+        super().__init__(captured)
+        self.captured = captured
+        self.output_path = output_path
+
+
 def parse_packet(packet, preview_bytes: int = 0) -> dict:
     """Convert a Scapy packet into a stable, privacy-conscious metadata row.
 
@@ -203,18 +215,24 @@ def capture_to_csv(
 
         def handle_packet(packet) -> None:
             nonlocal captured
-            writer.writerow(parse_packet(packet, preview_bytes))
+            row = parse_packet(packet, preview_bytes)
+            writer.writerow(row)
             handle.flush()
             captured += 1
-            print(format_packet(parse_packet(packet, preview_bytes)))
+            print(format_packet(row))
 
-        # Scapy count=0 means unlimited. store=False avoids accumulating packets.
-        sniff(
-            iface=interface,
-            count=count,
-            prn=handle_packet,
-            store=False,
-        )
+        try:
+            # Scapy count=0 means unlimited. store=False avoids accumulating
+            # packets. chainCC=True lets Ctrl+C reach our own handler.
+            sniff(
+                iface=interface,
+                count=count,
+                prn=handle_packet,
+                store=False,
+                chainCC=True,
+            )
+        except KeyboardInterrupt:
+            raise CaptureInterrupted(captured, output_path) from None
 
     return captured
 
@@ -303,8 +321,14 @@ def main(argv: list[str] | None = None) -> int:
         total = capture_to_csv(
             args.interface, args.count, args.output, args.hex_preview
         )
+    except CaptureInterrupted as exc:
+        print(
+            f"\nCapture interrupted after {exc.captured} packet(s). "
+            f"CSV saved to: {exc.output_path}"
+        )
+        return 130
     except KeyboardInterrupt:
-        print(f"\nCapture interrupted. CSV saved to {args.output}.")
+        print(f"\nCapture interrupted. CSV saved to: {args.output}")
         return 130
     except PermissionError:
         print(
