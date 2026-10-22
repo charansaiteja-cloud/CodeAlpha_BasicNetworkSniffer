@@ -11,6 +11,7 @@ htmlcov/
 *.pcap
 *.pcapng
 packets.csv
+demo.csv
 *.capture.csv
 captures/
 *.log
@@ -30,3 +31,17 @@ secrets*
 .vscode/
 .idea/
 .DS_Store
+
+# Local tooling and video-render artifacts (contain third-party sample audio)
+.opencode/
+.agents/
+skills-lock.json
+brag-output/
+brag-output-*/
+
+# Local agent and demo-generation artifacts
+.agents/
+.opencode/
+brag-output/
+brag-output-*/
+skills-lock.json
