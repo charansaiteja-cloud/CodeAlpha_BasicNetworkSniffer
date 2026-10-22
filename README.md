@@ -1,6 +1,6 @@
 # CodeAlpha Basic Network Sniffer
 
-A beginner-friendly Python 3 network sniffer using Scapy for CodeAlpha Cyber Security Internship Task 1.
+A beginner-friendly Python 3 network sniffer using Scapy for independent Python network packet analysis project.
 
 ## Features
 
