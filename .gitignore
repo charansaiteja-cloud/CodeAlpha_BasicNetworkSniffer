@@ -38,17 +38,3 @@ secrets*
 skills-lock.json
 brag-output/
 brag-output-*/
-
-# Local agent and demo-generation artifacts
-.agents/
-.opencode/
-brag-output/
-brag-output-*/
-skills-lock.json
-
-# Local tooling artifacts
-.agents/
-.opencode/
-brag-output/
-brag-output-*/
-skills-lock.json

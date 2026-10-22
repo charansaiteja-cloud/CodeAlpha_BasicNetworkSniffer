@@ -12,7 +12,7 @@
 
 ## Demo
 
-**[▶ Watch the demo video (MP4, 53 s)](basic-network-sniffer-demo.mp4)** — a real, unmodified capture of the
+**[▶ Watch the demo video (MP4, 53 s)](basic-network-sniffer-demo.mp4)** — a real capture of the
 tool running against a loopback interface: the live terminal output, the protocol decoding, the nine-column
 CSV, and the ICMP-only payload guard rail.
 
@@ -31,6 +31,7 @@ The design goal is deliberately narrow: **record the metadata, not the payload.*
 are never written to disk or printed. The only payload bytes the tool can emit are an optional, opt-in
 prefix of an ICMP/ICMPv6 message, hard-capped at 16 bytes and disabled by default.
 
+It was built as Task 1 of the CodeAlpha Cyber Security Internship.
 
 **Author:** Bejjam Charan Sai Teja
 
@@ -116,7 +117,8 @@ suite possible.
 | pytest | `>= 8.0, < 10.0` | Verified with 9.1.1. Only needed to run the test suite. |
 | Capture privileges | — | `CAP_NET_RAW` on Linux, Administrator + Npcap on Windows. |
 
-The tool itself depends only on the Python standard library plus Scapy.
+The tool itself depends only on the Python standard library plus Scapy. `pytest` is listed in
+`requirements.txt` for convenience but is only needed to run the test suite.
 
 ---
 
@@ -221,6 +223,8 @@ tailscale0
 wlan0
 ```
 
+(The list is abridged here; run the command to see every interface Scapy detects on your machine.)
+
 You can cross-check the list against the operating system:
 
 ```bash
@@ -232,11 +236,11 @@ ip route
 ### Capture a bounded number of packets
 
 ```bash
-python sniffer.py -i wlan0 -c 5 -o demo.csv
+python sniffer.py -i lo -c 5 -o demo.csv
 ```
 
 ```
-Interface: wlan0
+Interface: lo
 Packet limit: 5
 CSV output: demo.csv
 ICMP preview: 0 byte(s)
@@ -246,6 +250,8 @@ Monitoring authorized traffic only. Press Ctrl+C to stop.
 Capture finished. Packets recorded: 5
 CSV saved to: demo.csv
 ```
+
+Replace `lo` with an interface you are authorized to monitor, for example `wlan0` or `eth0`.
 
 ### Capture continuously and stop with Ctrl+C
 
@@ -263,7 +269,7 @@ Capture interrupted after 68 packet(s). CSV saved to: demo.csv
 ### Enable the optional ICMP payload prefix
 
 ```bash
-python sniffer.py -i wlan0 -c 10 --hex-preview 8 -o demo.csv
+python sniffer.py -i lo -c 10 --hex-preview 8 -o demo.csv
 ```
 
 `--hex-preview` accepts 1–16 bytes and applies **only** to ICMP and ICMPv6 messages. TCP, UDP and DNS
@@ -290,8 +296,11 @@ from scapy.all import Ether, IP, TCP
 
 import sniffer
 
-row = sniffer.parse_packet(Ether() / IP(src="192.0.2.1", dst="198.51.100.2") / TCP(sport=1234, dport=443))
-print(row["protocols"])                 # 'IPv4/TCP'
+packet = Ether() / IP(src="192.0.2.1", dst="198.51.100.2") / TCP(sport=1234, dport=443)
+
+row = sniffer.parse_packet(packet)
+print(row["protocols"])                       # 'IPv4/TCP'
+print(row["src"], "->", row["dst"])          # '192.0.2.1 -> 198.51.100.2'
 
 sniffer.write_packets_csv("out.csv", [packet])   # offline CSV export
 sniffer.available_interfaces()                  # ['eth0', 'lo', ...]
@@ -349,11 +358,11 @@ CPython 3.14.8 in the project virtual environment.
 | Check | Command | Result |
 | ----- | ------- | ------ |
 | Byte-compilation | `python -m py_compile sniffer.py tests/test_sniffer.py` | Passed |
-| Test suite | `python -m pytest -v` | **16 passed**, 0 failed (0.61 s) |
+| Test suite | `python -m pytest -v` | **16 passed**, 0 failed |
 | Dependency and import check | `import scapy, pytest, sniffer` | Passed — Scapy 2.8.0, pytest 9.1.1 |
 | Interface discovery | `python sniffer.py --list-interfaces` | Passed — 11 interfaces listed, exit code 0 |
 | Live bounded capture | `python sniffer.py -i lo -c 25 -o live_capture.csv` | Passed — 25 packets captured, 25 CSV data rows written |
-| Live continuous capture with `Ctrl+C` | `python sniffer.py -i lo -c 0` then `SIGINT` | Passed — "Capture interrupted after 64 packet(s)", exit code 130, 64 CSV data rows written |
+| Live continuous capture with `Ctrl+C` | `python sniffer.py -i lo -c 0` then `SIGINT` | Passed — "Capture interrupted after 68 packet(s)", exit code 130, 68 CSV data rows written |
 | Invalid interface handling | `python sniffer.py -i does-not-exist -c 5` | Passed — clear error listing the available interfaces, exit code 1 |
 | Insufficient privileges | `python sniffer.py -i lo -c 3` as an unprivileged user | Passed — "Permission denied" message, exit code 1 |
 | Demo media integrity | `ffprobe -v error -show_entries format=duration -show_entries stream=codec_type,width,height basic-network-sniffer-demo.mp4` | Passed — MP4, H.264 1920×1080 @ 30 fps, AAC 48 kHz stereo, 53.5 s, 11,426,632 bytes |
@@ -401,7 +410,7 @@ recorded as `IPv4/UDP`.
   For echo request/reply messages, the ICMP payload is the quoted original IP header — enabling the preview
   can therefore expose addresses of unrelated hosts.
 - Never commit real captures. The repository's `.gitignore` already excludes `*.pcap`, `*.pcapng`,
-  `packets.csv`, `captures/`, `*.log` and `.env` files.
+  `packets.csv`, `demo.csv`, `captures/`, `*.log` and `.env` files.
 - The tool has no authentication, no encryption and no access control: anyone who can read the output file
   can read the capture.
 
@@ -458,5 +467,6 @@ here as separate files.
 
 ## About
 
+**Bejjam Charan Sai Teja** — author, CodeAlpha Cyber Security Internship (Task 1).
 
 Repository: <https://github.com/charansaiteja-cloud/CodeAlpha_BasicNetworkSniffer>
